@@ -40,15 +40,17 @@ app.get("/urls/new", (req, res) => {
 });
 
 app.post("/urls", (req, res) => {
-  //const templateVars = { longURL: req.body.longURL };
-  //urlDatabase[generateRandomString()] = longURL;
-  console.log(req.body);
-  res.send("ok");
+  let id = generateRandomString()
+  urlDatabase[id] = req.body.longURL;
+  res.redirect(`/urls/${id}`);
 });
 
 app.get("/urls/:id", (req, res) => {
   const templateVars = { id: req.params.id, longURL: urlDatabase[req.params.id] };
   res.render("urls_show", templateVars);
+});
+app.get("/u/:id", (req, res) => {
+  res.redirect(urlDatabase[req.params.id]);
 });
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
