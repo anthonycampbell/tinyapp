@@ -17,6 +17,7 @@ function generateRandomString() {
   }
   return result;
 }
+
 const urlDatabase = {
   "b2xVn2": "http://www.lighthouselabs.ca",
   "9sm5xK": "http://www.google.com"
@@ -25,6 +26,16 @@ const urlDatabase = {
 const userDatabase = {
 
 };
+
+
+function getUser (email){
+  for (let u in userDatabase){
+    if (userDatabase[u].email === email ){
+      return userDatabase[u];
+    }
+  }
+  return null;
+}
 
 app.get("/", (req, res) => {
   res.send("Hello!");
@@ -57,13 +68,22 @@ app.post("/register", (req, res) => {
   let id = generateRandomString();
   let email = req.body.email;
   let password = req.body.password;
-  userDatabase[id] = {
-    id, 
-    email, 
-    password
+  let user = getUser(email);
+  console.log(userDatabase, email, password);
+  if (email === "" || password === "" || user){
+    console.log('here');
+    res.statusCode = 400;
+    res.redirect('/urls');
+  } else {
+    userDatabase[id] = {
+      id, 
+      email, 
+      password
+    }
+    console.log('and here;');
+    res.cookie('user_id', id);
+    res.redirect('/urls');
   }
-  res.cookie('user_id', id);
-  res.redirect('/urls')
 });
 
 app.get("/urls", (req, res) => {
