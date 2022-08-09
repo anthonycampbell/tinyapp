@@ -51,7 +51,11 @@ app.get("/urls.json", (req, res) => {
 
 app.get("/login", (req, res) =>{
   const templateVars = {user : userDatabase[req.cookies['user_id']]}
-  res.render('login', templateVars);
+  if (req.cookies['user_id']){
+    res.redirect('/urls');
+  } else {
+    res.render('login', templateVars);
+  }
 });
 
 app.post("/login", (req, res) => {
@@ -77,7 +81,11 @@ app.post("/logout", (req, res) => {
 
 app.get("/register", (req, res) => {
   const templateVars = {user : userDatabase[req.cookies['user_id']]}
-  res.render('register', templateVars)
+  if (req.cookies['user_id']){
+    res.redirect('/urls');
+  } else {
+    res.render('register', templateVars);
+  }
 });
 
 app.post("/register", (req, res) => {
@@ -109,14 +117,22 @@ app.get("/urls", (req, res) => {
 });
 
 app.post("/urls", (req, res) => {
-  let id = generateRandomString()
-  urlDatabase[id] = req.body.longURL;
-  res.redirect(`/urls/${id}`);
+  let id = generateRandomString();
+  if (!req.cookies['user_id']){
+    res.render("not_logged_in");
+  } else {
+    urlDatabase[id] = req.body.longURL;
+    res.redirect(`/urls/${id}`);
+  }
 });
 
 app.get("/urls/new", (req, res) => {
-  const templateVars = { user : userDatabase[req.cookies['user_id']] };
-  res.render("urls_new", templateVars);
+  const templateVars = {user : userDatabase[req.cookies['user_id']]}
+  if (!req.cookies['user_id']){
+    res.redirect('/login');
+  } else {
+    res.render("urls_new", templateVars);
+  }
 });
 
 app.get("/urls/:id", (req, res) => {
@@ -139,7 +155,11 @@ app.post("/urls/:id", (req, res) => {
 });
 
 app.get("/u/:id", (req, res) => {
-  res.redirect(urlDatabase[req.params.id]);
+  if (urlDatabase[req.params.id]){
+    res.redirect(urlDatabase[req.params.id]);
+  } else {
+    res.render('404_not_found');
+  }
 });
 
 app.listen(PORT, () => {
