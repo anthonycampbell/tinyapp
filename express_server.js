@@ -60,9 +60,12 @@ app.post("/login", (req, res) => {
     if (user.password === req.body.password){
       res.cookie('user_id', user.id);
       res.redirect('/urls');
+    } else {
+      res.statusCode = 403;
+      res.end();
     }
   } else {
-    res.statusCode = 400;
+    res.statusCode = 403;
     res.end();
   }
 });

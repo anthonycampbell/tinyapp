@@ -16,16 +16,18 @@
       <div class="navbar-nav">
         <a class="nav-item nav-link" href="/urls">My URLs</a>
         <a class="nav-item nav-link" href="/urls/new">Create New URL</a>
-        <% if (!user) { %>
-          <a class="nav-item nav-link" href="/login">Login</a>
-          <a class="nav-item nav-link" href="/register">Register</a>
-        <% } else { %>
-          <form method="POST" action="/logout">
-            <label for="logout">Welcome to TinyApp <%= user.email %></label>
-            <input type="submit" value="Logout" name="logout" class="btn btn-outline-secondary"></input>
-          </form>
-        <% } %>
       </div>
+    </div>
+    <div class="navbar-nav">
+      <% if (!user) { %>
+        <a class="nav-item nav-link" href="/login">Login</a>
+        <a class="nav-item nav-link" href="/register">Register</a>
+      <% } else { %>
+        <form method="POST" action="/logout">
+          <label for="logout">Welcome to TinyApp <%= user.email %></label>
+          <input type="submit" value="Logout" name="logout" class="nav-item btn btn-outline-secondary"></input>
+        </form>
+      <% } %>
     </div>
   </nav>
 </header>
