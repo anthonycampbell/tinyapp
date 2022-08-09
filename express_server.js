@@ -49,13 +49,26 @@ app.get("/urls.json", (req, res) => {
   res.json(urlDatabase);
 });
 
+app.get("/login", (req, res) =>{
+  const templateVars = {user : userDatabase[req.cookies['user_id']]}
+  res.render('login', templateVars);
+});
+
 app.post("/login", (req, res) => {
-  res.cookie('username', req.body.username);
-  res.redirect('/urls');
+  let user = getUser(req.body.email);
+  if (user) {
+    if (user.password === req.body.password){
+      res.cookie('user_id', user.id);
+      res.redirect('/urls');
+    }
+  } else {
+    res.statusCode = 400;
+    res.end();
+  }
 });
 
 app.post("/logout", (req, res) => {
-  res.clearCookie('username');
+  res.clearCookie('user_id');
   res.redirect('/urls');
 });
 
@@ -69,18 +82,15 @@ app.post("/register", (req, res) => {
   let email = req.body.email;
   let password = req.body.password;
   let user = getUser(email);
-  console.log(userDatabase, email, password);
   if (email === "" || password === "" || user){
-    console.log('here');
     res.statusCode = 400;
-    res.redirect('/urls');
+    res.end();
   } else {
     userDatabase[id] = {
       id, 
       email, 
       password
     }
-    console.log('and here;');
     res.cookie('user_id', id);
     res.redirect('/urls');
   }
