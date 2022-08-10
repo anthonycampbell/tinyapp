@@ -4,7 +4,10 @@ const PORT = 8080; // default port 8080
 const cookieSession = require('cookie-session');
 const bcrypt = require("bcryptjs");
 const getUser = require('./helpers').getUser;
+var methodOverride = require('method-override');
 
+
+app.use(methodOverride('_method'));
 app.set("view engine", "ejs");
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieSession({
@@ -180,7 +183,7 @@ app.get("/urls/:id", (req, res) => {
   }
 });
 
-app.post("/urls/:id/delete", (req, res) => {
+app.delete("/urls/:id", (req, res) => {
   if (req.session.user_id) {
     let theirURLs = urlsForUser(req.session.user_id);
     if (theirURLs[req.params.id]) {
@@ -197,7 +200,7 @@ app.post("/urls/:id/delete", (req, res) => {
   }
 });
 
-app.post("/urls/:id", (req, res) => {
+app.put("/urls/:id", (req, res) => {
   if (req.session.user_id) {
     let theirURLs = urlsForUser(req.session.user_id);
     if (theirURLs[req.params.id]) {
