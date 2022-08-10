@@ -3,6 +3,7 @@ const app = express();
 const PORT = 8080; // default port 8080
 const cookieParser = require('cookie-parser');
 const { response } = require("express");
+const bcrypt = require("bcryptjs");
 
 app.set("view engine", "ejs");
 app.use(express.urlencoded({ extended: true }));
@@ -23,12 +24,12 @@ const userDatabase = {
   "wa90cj": {
     id: "wa90cj",
     email: "a@a.com",
-    password: "pass"
+    password: bcrypt.hashSync("pass", 10)
   },
   "A9nNh2": {
     id: "A9nNh2",
     email: "email@com.com",
-    password: "grape"
+    password: bcrypt.hashSync("grape", 10)
   }
 };
 
@@ -84,7 +85,7 @@ app.get("/login", (req, res) =>{
 app.post("/login", (req, res) => {
   let user = getUser(req.body.email);
   if (user) {
-    if (user.password === req.body.password){
+    if (bcrypt.compareSync(req.body.password, user.password)){
       res.cookie('user_id', user.id);
       res.redirect('/urls');
     } else {
@@ -121,9 +122,9 @@ app.post("/register", (req, res) => {
     res.end();
   } else {
     userDatabase[id] = {
-      id, 
-      email, 
-      password
+      id: id, 
+      email: email, 
+      password: bcrypt.hashSync(password, 10)
     }
     res.cookie('user_id', id);
     res.redirect('/urls');
@@ -220,7 +221,7 @@ app.post("/urls/:id", (req, res) => {
 
 app.get("/u/:id", (req, res) => {
   if (urlDatabase[req.params.id]){
-    res.redirect(urlDatabase[req.params.id]);
+    res.redirect(urlDatabase[req.params.id].longURL);
   } else {
     res.render('404_not_found');
   }
