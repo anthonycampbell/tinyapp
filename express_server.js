@@ -18,11 +18,17 @@ app.use(cookieSession({
 const urlDatabase = {
   "b2xVn2": {
     longURL: "http://www.lighthouselabs.ca",
-    userID: "wa90cj"
+    userID: "wa90cj",
+    visits: 0,
+    uniqueVisitors: 0,
+    visitObjects: []
   },
   "9sm5xK": {
     longURL: "http://www.google.com",
-    userID: "A9nNh2"
+    userID: "A9nNh2",
+    visits: 0,
+    uniqueVisitors: 0,
+    visitObjects: []
   }
 };
 
@@ -149,7 +155,10 @@ app.post("/urls", (req, res) => {
     let id = generateRandomString();
     urlDatabase[id] = {
       longURL: req.body.longURL,
-      userID: uid
+      userID: uid,
+      visits: 0,
+      uniqueVisitors: 0,
+      visitObjects: []
     };
     res.redirect(`/urls/${id}`);
   }
@@ -170,7 +179,7 @@ app.get("/urls/:id", (req, res) => {
     if (theirURLs[req.params.id]) {
       const templateVars = {
         id: req.params.id,
-        longURL: urlDatabase[req.params.id].longURL,
+        urlData: urlDatabase[req.params.id],
         user : userDatabase[req.session.user_id]
       };
       res.render("urls_show", templateVars);
@@ -218,8 +227,19 @@ app.put("/urls/:id", (req, res) => {
 });
 
 app.get("/u/:id", (req, res) => {
-  if (urlDatabase[req.params.id]) {
-    res.redirect(urlDatabase[req.params.id].longURL);
+  let id = req.params.id;
+  if (urlDatabase[id]) {
+    let d = new Date();
+    if (!req.session.visitor_id){
+      req.session.visitor_id = generateRandomString();
+      urlDatabase[id].uniqueVisitors = urlDatabase[id].uniqueVisitors + 1;
+    }
+    urlDatabase[id].visitObjects.push({
+      timestamp: d,
+      visitorID: req.session.visitor_id
+    });
+    urlDatabase[id].visits = urlDatabase[id].visits + 1;
+    res.redirect(urlDatabase[id].longURL);
   } else {
     res.render('404_not_found');
   }

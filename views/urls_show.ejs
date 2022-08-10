@@ -16,7 +16,7 @@
     <div class="card text-center">
       <div class="card-header"></div>
       <div class="card-body">
-        <h5 class="card-title">TinyURL for: <%= longURL %></h5>
+        <h5 class="card-title">TinyURL for: <%= urlData.longURL %></h5>
         <p class="card-text">
           Short URL ID: <a href="/u/<%= id %>"><%= id %></a>
         </p>
@@ -29,6 +29,24 @@
           <input type="submit" class="btn btn-primary">
         </form>
       </div>
+      <p class="card-text">
+        Total Visits: <%= urlData.visits %>
+      </p>
+      <p class="card-text">
+        Unique Visitors: <%= urlData.uniqueVisitors %>
+      </p>
+      Visitor Data: 
+      <div 
+      class="card-text" 
+      style="
+      height: 200px;
+      overflow: scroll;
+      border-top: 1px solid black;
+      border-bottom: 1px solid black;">
+        <% for (let v of urlData.visitObjects) { %>
+          <p>id: <%= v.visitorID %>, Date: <%= v.timestamp %></p>
+        <% } %>
+        </div>
     </div>
     <!-- Bootstrap JS -->
     <script
