@@ -77,7 +77,7 @@ const hasVisited = function(url, vid) {
 };
 
 app.get("/", (req, res) => {
-  res.send("Hello!");
+  res.redirect("/urls");
 });
 
 app.get("/hello", (req, res) => {
@@ -115,7 +115,7 @@ app.post("/login", (req, res) => {
 });
 
 app.post("/logout", (req, res) => {
-  delete req.session.user_id;
+  req.session = null;
   res.redirect('/urls');
 });
 
@@ -151,7 +151,7 @@ app.post("/register", (req, res) => {
 app.get("/urls", (req, res) => {
   let user = userDatabase[req.session.user_id];
   if (!user) {
-    res.redirect("login");
+    res.render("not_logged_in");
   } else {
     let urls = urlsForUser(req.session.user_id);
     // this is kind of ugly because I didnt want to refactor

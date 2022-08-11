@@ -28,6 +28,7 @@
             <th scope="col">Total Visits</th>
             <th scope="col">Total Visitors</th>
             <th scope="col">Date Created</th>
+            <th scope="col">Edit</th>
           </tr>
         </thead>
         <tbody>
@@ -38,6 +39,11 @@
               <td><%= visits[id] %></td>
               <td><%= uniqueVisits[id] %></td>
               <td><%= urlDates[id] %></td>
+              <td>
+                <form method="GET" action="/urls/<%= id %>">
+                  <input type="submit" class="btn btn-outline-secondary" value="Edit">
+                </form>
+              </td>
               <td>
                 <form method="POST" action="/urls/<%= id %>?_method=DELETE">
                   <input type="submit" class="btn btn-outline-danger" value="DELETE">
