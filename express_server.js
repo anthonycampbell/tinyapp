@@ -4,7 +4,7 @@ const PORT = 8080; // default port 8080
 const cookieSession = require('cookie-session');
 const bcrypt = require("bcryptjs");
 const getUser = require('./helpers').getUser;
-var methodOverride = require('method-override');
+let methodOverride = require('method-override');
 
 
 app.use(methodOverride('_method'));
@@ -78,10 +78,11 @@ app.get("/urls.json", (req, res) => {
 });
 
 app.get("/login", (req, res) =>{
-  const templateVars = {user : userDatabase[req.session.user_id]};
-  if (req.session.user_id) {
+  let user = userDatabase[req.session.user_id];
+  if (user) {
     res.redirect('/urls');
   } else {
+    const templateVars = {user : user};
     res.render('login', templateVars);
   }
 });
@@ -108,10 +109,11 @@ app.post("/logout", (req, res) => {
 });
 
 app.get("/register", (req, res) => {
-  const templateVars = {user : userDatabase[req.session.user_id]};
-  if (req.session.user_id) {
+  let user = userDatabase[req.session.user_id];
+  if (user) {
     res.redirect('/urls');
   } else {
+    const templateVars = {user : user};
     res.render('register', templateVars);
   }
 });
@@ -136,19 +138,21 @@ app.post("/register", (req, res) => {
 });
 
 app.get("/urls", (req, res) => {
-  if (!req.session.user_id) {
+  let user = userDatabase[req.session.user_id];
+  if (!user) {
     res.redirect("login");
   } else {
     const templateVars = {
       urls: urlsForUser(req.session.user_id),
-      user : userDatabase[req.session.user_id]
+      user : user
     };
     res.render('urls_index', templateVars);
   }
 });
 
 app.post("/urls", (req, res) => {
-  if (!req.session.user_id) {
+  let user = userDatabase[req.session.user_id];
+  if (!user) {
     res.render("not_logged_in");
   } else {
     let uid = req.session.user_id;
@@ -165,22 +169,24 @@ app.post("/urls", (req, res) => {
 });
 
 app.get("/urls/new", (req, res) => {
-  const templateVars = {user : userDatabase[req.session.user_id]};
-  if (!req.session.user_id) {
+  let user = userDatabase[req.session.user_id];
+  if (!user) {
     res.redirect('/login');
   } else {
+    const templateVars = {user : user};
     res.render("urls_new", templateVars);
   }
 });
 
 app.get("/urls/:id", (req, res) => {
-  if (req.session.user_id) {
+  let user = userDatabase[req.session.user_id];
+  if (user) {
     let theirURLs = urlsForUser(req.session.user_id);
     if (theirURLs[req.params.id]) {
       const templateVars = {
         id: req.params.id,
         urlData: urlDatabase[req.params.id],
-        user : userDatabase[req.session.user_id]
+        user : user
       };
       res.render("urls_show", templateVars);
     } else {
@@ -193,15 +199,16 @@ app.get("/urls/:id", (req, res) => {
 });
 
 app.delete("/urls/:id", (req, res) => {
-  if (req.session.user_id) {
+  let user = userDatabase[req.session.user_id];
+  if (user) {
     let theirURLs = urlsForUser(req.session.user_id);
-    if (theirURLs[req.params.id]) {
+    if (theirURLs[req.params.id]) { // they can delete if they own it
       delete urlDatabase[req.params.id];
       res.redirect("/urls");
-    } else if (!urlDatabase[req.params.id]) {
+    } else if (!urlDatabase[req.params.id]) { // it doesnt exist to be deleted
       res.render('404_not_found');
     } else {
-      res.render('access_denied');
+      res.render('access_denied'); //it doesnt belong to them
     }
   } else {
     //must be logged in
@@ -210,15 +217,16 @@ app.delete("/urls/:id", (req, res) => {
 });
 
 app.put("/urls/:id", (req, res) => {
-  if (req.session.user_id) {
+  let user = userDatabase[req.session.user_id];
+  if (user) {
     let theirURLs = urlsForUser(req.session.user_id);
-    if (theirURLs[req.params.id]) {
+    if (theirURLs[req.params.id]) { // they can update if they own it
       urlDatabase[req.params.id].longURL = req.body.newURL;
       res.redirect("/urls");
-    } else if (!urlDatabase[req.params.id]) {
+    } else if (!urlDatabase[req.params.id]) {  // it doesnt exist to be updated
       res.render('404_not_found');
     } else {
-      res.render('access_denied');
+      res.render('access_denied'); //it doesnt belong to them
     }
   } else {
     //must be logged in
@@ -230,7 +238,7 @@ app.get("/u/:id", (req, res) => {
   let id = req.params.id;
   if (urlDatabase[id]) {
     let d = new Date();
-    if (!req.session.visitor_id){
+    if (!req.session.visitor_id) {
       req.session.visitor_id = generateRandomString();
       urlDatabase[id].uniqueVisitors = urlDatabase[id].uniqueVisitors + 1;
     }
