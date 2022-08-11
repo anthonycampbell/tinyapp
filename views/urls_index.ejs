@@ -36,9 +36,9 @@
             <tr>
               <td><a href="/urls/<%= id %>"><%= id %></a></td>
               <td><%= urls[id] %></td>
-              <td><%= visits[id] %></td>
-              <td><%= uniqueVisits[id] %></td>
-              <td><%= urlDates[id] %></td>
+              <td><%= urlData[id].visits %></td>
+              <td><%= urlData[id].uniqueVisitors %></td>
+              <td><%= urlData[id].createdAt %></td>
               <td>
                 <form method="GET" action="/urls/<%= id %>">
                   <input type="submit" class="btn btn-outline-secondary" value="Edit">

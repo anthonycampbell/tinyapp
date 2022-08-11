@@ -23,28 +23,26 @@ app.use(cookieParser());
 
 app.get("/", (req, res) => {
   if (req.session.user_is) {
-    res.redirect('/urls');
-  } else {
-    res.redirect("login");
+    return res.redirect('/urls');
   }
+  return res.redirect("login");
 });
 
 app.get("/hello", (req, res) => {
-  res.send("<html><body>Hello <b>World</b></body></html>\n");
+  return res.send("<html><body>Hello <b>World</b></body></html>\n");
 });
 
 app.get("/urls.json", (req, res) => {
-  res.json(urlDatabase);
+  return res.json(urlDatabase);
 });
 
 app.get("/login", (req, res) =>{
   let user = userDatabase[req.session.user_id];
+  const templateVars = {user : user};
   if (user) {
-    res.redirect('/urls');
-  } else {
-    const templateVars = {user : user};
-    res.render('login', templateVars);
+    return res.redirect('/urls');
   }
+  return res.render('login', templateVars);
 });
 
 app.post("/login", (req, res) => {
@@ -52,105 +50,88 @@ app.post("/login", (req, res) => {
   if (user) {
     if (bcrypt.compareSync(req.body.password, user.password)) {
       req.session['user_id'] = user.id;
-      res.redirect('/urls');
-    } else {
-      res.statusCode = 403;
-      res.end();
+      return res.redirect('/urls');
     }
-  } else {
-    res.statusCode = 403;
-    res.end();
+    res.statusCode = 403; //wrong password
+    return res.end();
   }
+  res.statusCode = 403; //user doesnt exist
+  return res.end();
 });
 
 app.post("/logout", (req, res) => {
   req.session = null;
-  res.redirect('/urls');
+  return res.redirect('/urls');
 });
 
 app.get("/register", (req, res) => {
   let user = userDatabase[req.session.user_id];
+  const templateVars = {user : user};
   if (user) {
-    res.redirect('/urls');
-  } else {
-    const templateVars = {user : user};
-    res.render('register', templateVars);
+    return res.redirect('/urls');
   }
+  return res.render('register', templateVars);
 });
 
 app.post("/register", (req, res) => {
   let id = generateRandomString();
   let email = req.body.email;
   let password = req.body.password;
+  let newUser = {
+    id: id,
+    email: email,
+    password: bcrypt.hashSync(password, 10)
+  };
   let user = getUser(email, userDatabase);
-  if (email === "" || password === "" || user) {
+  if (email === "" || password === "" || user) { // oops bad user submission
     res.statusCode = 400;
-    res.end();
-  } else {
-    userDatabase[id] = {
-      id: id,
-      email: email,
-      password: bcrypt.hashSync(password, 10)
-    };
-    req.session['user_id'] = id;
-    res.redirect('/urls');
+    return res.end();
   }
+  userDatabase[id] = newUser;
+  req.session['user_id'] = id;
+  return res.redirect('/urls');
 });
 
 app.get("/urls", (req, res) => {
   let user = userDatabase[req.session.user_id];
+  let urls = urlsForUser(urlDatabase, req.session.user_id);
+  const templateVars = {
+    urls: urls,
+    user : user,
+    urlData: urlDatabase
+  };
   if (!user) {
-    res.render("not_logged_in");
-  } else {
-    let urls = urlsForUser(urlDatabase, req.session.user_id);
-    // this is kind of ugly because I didnt want to refactor
-    // my urlsForUser function just for the stretch
-    let urlVisits = {};
-    let urlUniqueVisits = {};
-    let urlDates = {};
-    for (let id in urls) {
-      urlVisits[id] = urlDatabase[id].visits;
-      urlUniqueVisits[id] = urlDatabase[id].uniqueVisitors;
-      urlDates[id] = urlDatabase[id].createdAt;
-    }
-    const templateVars = {
-      urls: urls,
-      user : user,
-      visits: urlVisits,
-      uniqueVisits: urlUniqueVisits,
-      urlDates: urlDates
-    };
-    res.render('urls_index', templateVars);
+    return res.render("not_logged_in");
   }
+  return res.render('urls_index', templateVars);
 });
 
 app.post("/urls", (req, res) => {
   let user = userDatabase[req.session.user_id];
+  let uid = req.session.user_id;
+  let id = generateRandomString();
+  let newURL = {
+    longURL: req.body.longURL,
+    userID: uid,
+    visits: 0,
+    uniqueVisitors: 0,
+    visitObjects: [],
+    createdAt: new Date()
+  };
   if (!user) {
-    res.render("not_logged_in");
-  } else {
-    let uid = req.session.user_id;
-    let id = generateRandomString();
-    urlDatabase[id] = {
-      longURL: req.body.longURL,
-      userID: uid,
-      visits: 0,
-      uniqueVisitors: 0,
-      visitObjects: [],
-      createdAt: new Date()
-    };
-    res.redirect(`/urls/${id}`);
+    return res.render("not_logged_in");
   }
+  urlDatabase[id] = newURL;
+  return res.redirect(`/urls/${id}`);
 });
 
 app.get("/urls/new", (req, res) => {
   let user = userDatabase[req.session.user_id];
+  const templateVars = {user : user};
   if (!user) {
-    res.redirect('/login');
-  } else {
-    const templateVars = {user : user};
-    res.render("urls_new", templateVars);
+    return res.redirect('/login');
   }
+  return res.render("urls_new", templateVars);
 });
 
 app.get("/urls/:id", (req, res) => {
@@ -163,14 +144,11 @@ app.get("/urls/:id", (req, res) => {
         urlData: urlDatabase[req.params.id],
         user : user
       };
-      res.render("urls_show", templateVars);
-    } else {
-      res.render('access_denied');
-    }
-  } else {
-    //must be logged in
-    res.redirect("/login");
+      return res.render("urls_show", templateVars);
+    } 
+    return res.render('access_denied'); //Doesnt belong to you bro
   }
+  return res.redirect("/login");
 });
 
 app.delete("/urls/:id", (req, res) => {
@@ -179,16 +157,14 @@ app.delete("/urls/:id", (req, res) => {
     let theirURLs = urlsForUser(urlDatabase, req.session.user_id);
     if (theirURLs[req.params.id]) { // they can delete if they own it
       delete urlDatabase[req.params.id];
-      res.redirect("/urls");
-    } else if (!urlDatabase[req.params.id]) { // it doesnt exist to be deleted
-      res.render('404_not_found');
-    } else {
-      res.render('access_denied'); //it doesnt belong to them
+      return res.redirect("/urls");
     }
-  } else {
-    //must be logged in
-    res.render("not_logged_in");
+    if (!urlDatabase[req.params.id]) { // it doesnt exist to be deleted
+      return res.render('404_not_found');
+    }
+    return res.render('access_denied'); //it doesnt belong to them
   }
+  return res.render("not_logged_in");
 });
 
 app.put("/urls/:id", (req, res) => {
@@ -197,16 +173,14 @@ app.put("/urls/:id", (req, res) => {
     let theirURLs = urlsForUser(urlDatabase, req.session.user_id);
     if (theirURLs[req.params.id]) { // they can update if they own it
       urlDatabase[req.params.id].longURL = req.body.newURL;
-      res.redirect("/urls");
-    } else if (!urlDatabase[req.params.id]) {  // it doesnt exist to be updated
-      res.render('404_not_found');
-    } else {
-      res.render('access_denied'); //it doesnt belong to them
+      return res.redirect("/urls");
     }
-  } else {
-    //must be logged in
-    res.render("not_logged_in");
-  }
+    if (!urlDatabase[req.params.id]) {  // it doesnt exist to be updated
+      return res.render('404_not_found');
+    }
+    return res.render('access_denied'); //it doesnt belong to them
+  } 
+  return res.render("not_logged_in");
 });
 
 app.get("/u/:id", (req, res) => {
@@ -214,23 +188,22 @@ app.get("/u/:id", (req, res) => {
   if (urlDatabase[id]) {
     let d = new Date();
     let vid;
-    if (!hasVisited(urlDatabase, id, req.cookies['analytics'])) {
+    if (!hasVisited(urlDatabase, id, req.cookies['analytics'])) { // remember first visit
       if (!req.cookies['analytics']) {
         vid = generateRandomString();
         res.cookie('analytics', vid);
       }
       urlDatabase[id].uniqueVisitors = urlDatabase[id].uniqueVisitors + 1;
     }
-    !vid ? vid = req.cookies['analytics'] : null;
+    !vid ? vid = req.cookies['analytics'] : null; // subsequent visits
     urlDatabase[id].visitObjects.push({
       timestamp: d,
       visitorID: vid
     });
     urlDatabase[id].visits = urlDatabase[id].visits + 1;
-    res.redirect(urlDatabase[id].longURL);
-  } else {
-    res.render('404_not_found');
+    return res.redirect(urlDatabase[id].longURL);
   }
+  return res.render('404_not_found');
 });
 
 app.listen(PORT, () => {
