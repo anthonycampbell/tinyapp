@@ -79,7 +79,11 @@ const hasVisited = function(url, vid) {
 };
 
 app.get("/", (req, res) => {
-  res.redirect("/urls");
+  if (req.session.user_is) {
+    res.redirect('/urls');
+  } else {
+    res.redirect("login");
+  }
 });
 
 app.get("/hello", (req, res) => {
