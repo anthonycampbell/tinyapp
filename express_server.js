@@ -5,8 +5,12 @@ const cookieParser = require('cookie-parser');
 const cookieSession = require('cookie-session');
 const bcrypt = require("bcryptjs");
 const getUser = require('./helpers').getUser;
-let methodOverride = require('method-override');
-
+const generateRandomString = require('./helpers').generateRandomString;
+const urlsForUser = require('./helpers').urlsForUser;
+const hasVisited = require('./helpers').hasVisited;
+const methodOverride = require('method-override');
+const urlDatabase = require('./databases/urlDatabase');
+const userDatabase = require('./databases/userDatabase');
 
 app.use(methodOverride('_method'));
 app.set("view engine", "ejs");
@@ -16,67 +20,6 @@ app.use(cookieSession({
   keys: ['ALFBELIBVALalisnfacl'],
 }));
 app.use(cookieParser());
-
-const urlDatabase = {
-  "b2xVn2": {
-    longURL: "http://www.lighthouselabs.ca",
-    userID: "wa90cj",
-    visits: 0,
-    uniqueVisitors: 0,
-    visitObjects: [],
-    createdAt: new Date()
-  },
-  "9sm5xK": {
-    longURL: "http://www.google.com",
-    userID: "A9nNh2",
-    visits: 0,
-    uniqueVisitors: 0,
-    visitObjects: [],
-    createdAt: new Date()
-  }
-};
-
-const userDatabase = {
-  "wa90cj": {
-    id: "wa90cj",
-    email: "a@a.com",
-    password: bcrypt.hashSync("pass", 10)
-  },
-  "A9nNh2": {
-    id: "A9nNh2",
-    email: "email@com.com",
-    password: bcrypt.hashSync("grape", 10)
-  }
-};
-
-const generateRandomString = function() {
-  let alphNum = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890';
-  let result = '';
-  for (let i = 0; i < 6; i++) {
-    let j = Math.floor(Math.random() * (alphNum.length - 1));
-    result += alphNum[j];
-  }
-  return result;
-};
-
-const urlsForUser = function(id) {
-  let urls = {};
-  for (let url in urlDatabase) {
-    if (id === urlDatabase[url].userID) {
-      urls[url] = urlDatabase[url].longURL;
-    }
-  }
-  return urls;
-};
-
-const hasVisited = function(url, vid) {
-  for (let v of urlDatabase[url].visitObjects) {
-    if (v.visitorID === vid) {
-      return true;
-    }
-  }
-  return false;
-};
 
 app.get("/", (req, res) => {
   if (req.session.user_is) {
@@ -159,7 +102,7 @@ app.get("/urls", (req, res) => {
   if (!user) {
     res.render("not_logged_in");
   } else {
-    let urls = urlsForUser(req.session.user_id);
+    let urls = urlsForUser(urlDatabase, req.session.user_id);
     // this is kind of ugly because I didnt want to refactor
     // my urlsForUser function just for the stretch
     let urlVisits = {};
@@ -213,7 +156,7 @@ app.get("/urls/new", (req, res) => {
 app.get("/urls/:id", (req, res) => {
   let user = userDatabase[req.session.user_id];
   if (user) {
-    let theirURLs = urlsForUser(req.session.user_id);
+    let theirURLs = urlsForUser(urlDatabase, req.session.user_id);
     if (theirURLs[req.params.id]) {
       const templateVars = {
         id: req.params.id,
@@ -233,7 +176,7 @@ app.get("/urls/:id", (req, res) => {
 app.delete("/urls/:id", (req, res) => {
   let user = userDatabase[req.session.user_id];
   if (user) {
-    let theirURLs = urlsForUser(req.session.user_id);
+    let theirURLs = urlsForUser(urlDatabase, req.session.user_id);
     if (theirURLs[req.params.id]) { // they can delete if they own it
       delete urlDatabase[req.params.id];
       res.redirect("/urls");
@@ -251,7 +194,7 @@ app.delete("/urls/:id", (req, res) => {
 app.put("/urls/:id", (req, res) => {
   let user = userDatabase[req.session.user_id];
   if (user) {
-    let theirURLs = urlsForUser(req.session.user_id);
+    let theirURLs = urlsForUser(urlDatabase, req.session.user_id);
     if (theirURLs[req.params.id]) { // they can update if they own it
       urlDatabase[req.params.id].longURL = req.body.newURL;
       res.redirect("/urls");
@@ -271,7 +214,7 @@ app.get("/u/:id", (req, res) => {
   if (urlDatabase[id]) {
     let d = new Date();
     let vid;
-    if (!hasVisited(id, req.cookies['analytics'])) {
+    if (!hasVisited(urlDatabase, id, req.cookies['analytics'])) {
       if (!req.cookies['analytics']) {
         vid = generateRandomString();
         res.cookie('analytics', vid);
