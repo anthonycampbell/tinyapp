@@ -67,6 +67,15 @@ const urlsForUser = function(id) {
   return urls;
 };
 
+const hasVisited = function(url, vid) {
+  for (let v of urlDatabase[url].visitObjects) {
+    if (v.visitorID === vid) {
+      return true;
+    }
+  }
+  return false;
+};
+
 app.get("/", (req, res) => {
   res.send("Hello!");
 });
@@ -251,14 +260,6 @@ app.put("/urls/:id", (req, res) => {
   }
 });
 
-const hasVisited = function(url, vid) {
-  for (let v of urlDatabase[url].visitObjects) {
-    if (v.visitorID === vid) {
-      return true;
-    }
-  }
-  return false;
-};
 app.get("/u/:id", (req, res) => {
   let id = req.params.id;
   if (urlDatabase[id]) {
