@@ -251,12 +251,22 @@ app.put("/urls/:id", (req, res) => {
   }
 });
 
+const hasVisited = function(url, vid) {
+  for (let v of urlDatabase[url].visitObjects) {
+    if (v.visitorID === vid) {
+      return true;
+    }
+  }
+  return false;
+};
 app.get("/u/:id", (req, res) => {
   let id = req.params.id;
   if (urlDatabase[id]) {
     let d = new Date();
-    if (!req.session.visitor_id) {
-      req.session['visitor_id'] = generateRandomString();
+    if (!hasVisited(id, req.session.visitor_id)) {
+      if (!req.session.visitor_id) {
+        req.session['visitor_id'] = generateRandomString();
+      }
       urlDatabase[id].uniqueVisitors = urlDatabase[id].uniqueVisitors + 1;
     }
     urlDatabase[id].visitObjects.push({
