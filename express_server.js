@@ -93,7 +93,7 @@ app.post("/login", (req, res) => {
   let user = getUser(req.body.email, userDatabase);
   if (user) {
     if (bcrypt.compareSync(req.body.password, user.password)) {
-      req.session.user_id = user.id;
+      req.session['user_id'] = user.id;
       res.redirect('/urls');
     } else {
       res.statusCode = 403;
@@ -134,7 +134,7 @@ app.post("/register", (req, res) => {
       email: email,
       password: bcrypt.hashSync(password, 10)
     };
-    req.session.user_id = id;
+    req.session['user_id'] = id;
     res.redirect('/urls');
   }
 });
@@ -256,7 +256,7 @@ app.get("/u/:id", (req, res) => {
   if (urlDatabase[id]) {
     let d = new Date();
     if (!req.session.visitor_id) {
-      req.session.visitor_id = generateRandomString();
+      req.session['visitor_id'] = generateRandomString();
       urlDatabase[id].uniqueVisitors = urlDatabase[id].uniqueVisitors + 1;
     }
     urlDatabase[id].visitObjects.push({
