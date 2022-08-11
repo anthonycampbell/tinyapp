@@ -1,6 +1,7 @@
 const express = require("express");
 const app = express();
 const PORT = 8080; // default port 8080
+const cookieParser = require('cookie-parser');
 const cookieSession = require('cookie-session');
 const bcrypt = require("bcryptjs");
 const getUser = require('./helpers').getUser;
@@ -14,6 +15,7 @@ app.use(cookieSession({
   name: 'session',
   keys: ['ALFBELIBVALalisnfacl'],
 }));
+app.use(cookieParser());
 
 const urlDatabase = {
   "b2xVn2": {
@@ -264,15 +266,18 @@ app.get("/u/:id", (req, res) => {
   let id = req.params.id;
   if (urlDatabase[id]) {
     let d = new Date();
-    if (!hasVisited(id, req.session.visitor_id)) {
-      if (!req.session.visitor_id) {
-        req.session['visitor_id'] = generateRandomString();
+    let vid;
+    if (!hasVisited(id, req.cookies['analytics'])) {
+      if (!req.cookies['analytics']) {
+        vid = generateRandomString();
+        res.cookie('analytics', vid);
       }
       urlDatabase[id].uniqueVisitors = urlDatabase[id].uniqueVisitors + 1;
     }
+    !vid ? vid = req.cookies['analytics'] : null;
     urlDatabase[id].visitObjects.push({
       timestamp: d,
-      visitorID: req.session.visitor_id
+      visitorID: vid
     });
     urlDatabase[id].visits = urlDatabase[id].visits + 1;
     res.redirect(urlDatabase[id].longURL);
