@@ -145,10 +145,12 @@ app.get("/urls", (req, res) => {
     res.redirect("login");
   } else {
     let urls = urlsForUser(req.session.user_id);
+    // this is kind of ugly because I didnt want to refactor
+    // my urlsForUser function just for the stretch
     let urlVisits = {};
     let urlUniqueVisits = {};
     let urlDates = {};
-    for (let id in urls){
+    for (let id in urls) {
       urlVisits[id] = urlDatabase[id].visits;
       urlUniqueVisits[id] = urlDatabase[id].uniqueVisitors;
       urlDates[id] = urlDatabase[id].createdAt;
