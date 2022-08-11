@@ -21,14 +21,16 @@ const urlDatabase = {
     userID: "wa90cj",
     visits: 0,
     uniqueVisitors: 0,
-    visitObjects: []
+    visitObjects: [],
+    createdAt: new Date()
   },
   "9sm5xK": {
     longURL: "http://www.google.com",
     userID: "A9nNh2",
     visits: 0,
     uniqueVisitors: 0,
-    visitObjects: []
+    visitObjects: [],
+    createdAt: new Date()
   }
 };
 
@@ -142,9 +144,21 @@ app.get("/urls", (req, res) => {
   if (!user) {
     res.redirect("login");
   } else {
+    let urls = urlsForUser(req.session.user_id);
+    let urlVisits = {};
+    let urlUniqueVisits = {};
+    let urlDates = {};
+    for (let id in urls){
+      urlVisits[id] = urlDatabase[id].visits;
+      urlUniqueVisits[id] = urlDatabase[id].uniqueVisitors;
+      urlDates[id] = urlDatabase[id].createdAt;
+    }
     const templateVars = {
-      urls: urlsForUser(req.session.user_id),
-      user : user
+      urls: urls,
+      user : user,
+      visits: urlVisits,
+      uniqueVisits: urlUniqueVisits,
+      urlDates: urlDates
     };
     res.render('urls_index', templateVars);
   }
@@ -162,7 +176,8 @@ app.post("/urls", (req, res) => {
       userID: uid,
       visits: 0,
       uniqueVisitors: 0,
-      visitObjects: []
+      visitObjects: [],
+      createdAt: new Date()
     };
     res.redirect(`/urls/${id}`);
   }
