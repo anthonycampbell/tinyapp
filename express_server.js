@@ -4,10 +4,7 @@ const PORT = 8080; // default port 8080
 const cookieParser = require('cookie-parser');
 const cookieSession = require('cookie-session');
 const bcrypt = require("bcryptjs");
-const getUser = require('./helpers').getUser;
-const generateRandomString = require('./helpers').generateRandomString;
-const urlsForUser = require('./helpers').urlsForUser;
-const hasVisited = require('./helpers').hasVisited;
+const {getUser, generateRandomString, urlsForUser, hasVisited} = require('./helpers');
 const methodOverride = require('method-override');
 const urlDatabase = require('./databases/urlDatabase');
 const userDatabase = require('./databases/userDatabase');
@@ -22,7 +19,8 @@ app.use(cookieSession({
 app.use(cookieParser());
 
 app.get("/", (req, res) => {
-  if (req.session.user_id) {
+  const user = userDatabase[req.session.user_id];
+  if (user) {
     return res.redirect('/urls');
   }
   return res.redirect("login");
@@ -37,26 +35,25 @@ app.get("/urls.json", (req, res) => {
 });
 
 app.get("/login", (req, res) =>{
-  let user = userDatabase[req.session.user_id];
-  const templateVars = {user : user};
+  const user = userDatabase[req.session.user_id];
   if (user) {
     return res.redirect('/urls');
   }
+  const templateVars = {user : user};
   return res.render('login', templateVars);
 });
 
 app.post("/login", (req, res) => {
-  let user = getUser(req.body.email, userDatabase);
-  if (user) {
-    if (bcrypt.compareSync(req.body.password, user.password)) {
-      req.session['user_id'] = user.id;
-      return res.redirect('/urls');
-    }
-    res.statusCode = 403; //wrong password
-    return res.end();
+  const user = getUser(req.body.email, userDatabase);
+  if (!user) {
+    return res.status(403).end(); // user doesnt exist
   }
-  res.statusCode = 403; //user doesnt exist
-  return res.end();
+  const correctPass = bcrypt.compareSync(req.body.password, user.password);
+  if (!correctPass) {
+    return res.status(403).end();
+  }
+  req.session['user_id'] = user.id;
+  return res.redirect('/urls');
 });
 
 app.post("/logout", (req, res) => {
@@ -65,52 +62,54 @@ app.post("/logout", (req, res) => {
 });
 
 app.get("/register", (req, res) => {
-  let user = userDatabase[req.session.user_id];
-  const templateVars = {user : user};
+  const user = userDatabase[req.session.user_id];
   if (user) {
     return res.redirect('/urls');
   }
+  const templateVars = {user : user};
   return res.render('register', templateVars);
 });
 
 app.post("/register", (req, res) => {
-  let id = generateRandomString();
-  let email = req.body.email;
-  let password = req.body.password;
-  let newUser = {
+  const id = generateRandomString();
+  const email = req.body.email;
+  const password = req.body.password;
+  const user = getUser(email, userDatabase);
+  if (email === "" || password === "" || user) {
+    return res.status(400).end();
+  }
+  const newUser = {
     id: id,
     email: email,
     password: bcrypt.hashSync(password, 10)
   };
-  let user = getUser(email, userDatabase);
-  if (email === "" || password === "" || user) { // oops bad user submission
-    res.statusCode = 400;
-    return res.end();
-  }
   userDatabase[id] = newUser;
   req.session['user_id'] = id;
   return res.redirect('/urls');
 });
 
 app.get("/urls", (req, res) => {
-  let user = userDatabase[req.session.user_id];
-  let urls = urlsForUser(urlDatabase, req.session.user_id);
+  const user = userDatabase[req.session.user_id];
+  if (!user) {
+    return res.status(400).render("not_logged_in");
+  }
+  const urls = urlsForUser(urlDatabase, req.session.user_id);
   const templateVars = {
     urls: urls,
     user : user,
     urlData: urlDatabase
   };
-  if (!user) {
-    return res.render("not_logged_in");
-  }
   return res.render('urls_index', templateVars);
 });
 
 app.post("/urls", (req, res) => {
-  let user = userDatabase[req.session.user_id];
-  let uid = req.session.user_id;
-  let id = generateRandomString();
-  let newURL = {
+  const user = userDatabase[req.session.user_id];
+  if (!user) {
+    return res.render("not_logged_in");
+  }
+  const uid = req.session.user_id;
+  const id = generateRandomString();
+  const newURL = {
     longURL: req.body.longURL,
     userID: uid,
     visits: 0,
@@ -118,92 +117,92 @@ app.post("/urls", (req, res) => {
     visitObjects: [],
     createdAt: new Date()
   };
-  if (!user) {
-    return res.render("not_logged_in");
-  }
   urlDatabase[id] = newURL;
   return res.redirect(`/urls/${id}`);
 });
 
 app.get("/urls/new", (req, res) => {
-  let user = userDatabase[req.session.user_id];
-  const templateVars = {user : user};
+  const user = userDatabase[req.session.user_id];
   if (!user) {
     return res.redirect('/login');
   }
+  const templateVars = {user : user};
   return res.render("urls_new", templateVars);
 });
 
 app.get("/urls/:id", (req, res) => {
-  let user = userDatabase[req.session.user_id];
-  if (user) {
-    let theirURLs = urlsForUser(urlDatabase, req.session.user_id);
-    if (theirURLs[req.params.id]) {
-      const templateVars = {
-        id: req.params.id,
-        urlData: urlDatabase[req.params.id],
-        user : user
-      };
-      return res.render("urls_show", templateVars);
-    } 
-    return res.render('access_denied'); //Doesnt belong to you bro
+  const user = userDatabase[req.session.user_id];
+  if (!user) {
+    return res.redirect("/login");
   }
-  return res.redirect("/login");
+  if (!urlDatabase[req.params.id]) { // Doesn't exist
+    return res.render('404_not_found');
+  }
+  const theirURLs = urlsForUser(urlDatabase, req.session.user_id);
+  if (!theirURLs[req.params.id]) { // Doesn't belong to you bro
+    return res.render('access_denied');
+  }
+  const templateVars = {
+    id: req.params.id,
+    urlData: urlDatabase[req.params.id],
+    user : user
+  };
+  return res.render("urls_show", templateVars);
 });
 
 app.delete("/urls/:id", (req, res) => {
-  let user = userDatabase[req.session.user_id];
-  if (user) {
-    let theirURLs = urlsForUser(urlDatabase, req.session.user_id);
-    if (theirURLs[req.params.id]) { // they can delete if they own it
-      delete urlDatabase[req.params.id];
-      return res.redirect("/urls");
-    }
-    if (!urlDatabase[req.params.id]) { // it doesnt exist to be deleted
-      return res.render('404_not_found');
-    }
-    return res.render('access_denied'); //it doesnt belong to them
+  const user = userDatabase[req.session.user_id];
+  if (!user) {
+    return res.render("not_logged_in");
   }
-  return res.render("not_logged_in");
+  if (!urlDatabase[req.params.id]) { // It doesn't exist to be deleted
+    return res.render('404_not_found');
+  }
+  let theirURLs = urlsForUser(urlDatabase, req.session.user_id);
+  if (!theirURLs[req.params.id]) { // It doesn't belong to them
+    return res.render('access_denied');
+  }
+  delete urlDatabase[req.params.id]; //go ahead
+  return res.redirect("/urls");
 });
 
 app.put("/urls/:id", (req, res) => {
-  let user = userDatabase[req.session.user_id];
-  if (user) {
-    let theirURLs = urlsForUser(urlDatabase, req.session.user_id);
-    if (theirURLs[req.params.id]) { // they can update if they own it
-      urlDatabase[req.params.id].longURL = req.body.newURL;
-      return res.redirect("/urls");
-    }
-    if (!urlDatabase[req.params.id]) {  // it doesnt exist to be updated
-      return res.render('404_not_found');
-    }
+  const user = userDatabase[req.session.user_id];
+  if (!user) {
+    return res.render("not_logged_in");
+  }
+  if (!urlDatabase[req.params.id]) {  // it doesnt exist to be updated
+    return res.render('404_not_found');
+  }
+  let theirURLs = urlsForUser(urlDatabase, req.session.user_id);
+  if (!theirURLs[req.params.id]) {
     return res.render('access_denied'); //it doesnt belong to them
-  } 
-  return res.render("not_logged_in");
+  }
+  urlDatabase[req.params.id].longURL = req.body.newURL; // go ahead
+  return res.redirect("/urls");
 });
 
 app.get("/u/:id", (req, res) => {
   let id = req.params.id;
-  if (urlDatabase[id]) {
-    let d = new Date();
-    let vid;
-    if (!hasVisited(urlDatabase, id, req.cookies['analytics'])) { // remember first visit
-      if (!req.cookies['analytics']) {
-        vid = generateRandomString();
-        res.cookie('analytics', vid);
-      }
-      urlDatabase[id].uniqueVisitors = urlDatabase[id].uniqueVisitors + 1;
-    }
-    !vid ? vid = req.cookies['analytics'] : null; // subsequent visits
-    urlDatabase[id].visitObjects.push({
-      timestamp: d,
-      visitorID: vid
-    });
-    urlDatabase[id].visits = urlDatabase[id].visits + 1;
-    return res.redirect(urlDatabase[id].longURL);
+  if (!urlDatabase[id]) {
+    return res.render('404_not_found');
   }
-  return res.render('404_not_found');
+  let d = new Date();
+  let vid;
+  if (!hasVisited(urlDatabase, id, req.cookies['analytics'])) { // remember first visit
+    if (!req.cookies['analytics']) {
+      vid = generateRandomString();
+      res.cookie('analytics', vid);
+    }
+    urlDatabase[id].uniqueVisitors = urlDatabase[id].uniqueVisitors + 1;
+  }
+  !vid ? vid = req.cookies['analytics'] : null; // subsequent visits
+  urlDatabase[id].visitObjects.push({
+    timestamp: d,
+    visitorID: vid
+  });
+  urlDatabase[id].visits = urlDatabase[id].visits + 1;
+  return res.redirect(urlDatabase[id].longURL);
 });
 
 app.listen(PORT, () => {
