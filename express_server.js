@@ -191,9 +191,12 @@ app.get("/u/:id", (req, res) => {
     timestamp: new Date(),
     visitorID: req.cookies['analytics']
   };
-  if (!hasVisited(urlDatabase, id, req.cookies['analytics'])) { // remember first visit
+  if (!req.cookies['analytics']) {
     visit.visitorID = generateRandomString();
     res.cookie('analytics', visit.visitorID);
+  }
+  const hasNotVisited = !hasVisited(urlDatabase, id, req.cookies['analytics']);
+  if (hasNotVisited) {
     urlDatabase[id].uniqueVisitors = urlDatabase[id].uniqueVisitors + 1;
   }
   urlDatabase[id].visitObjects.push(visit);
