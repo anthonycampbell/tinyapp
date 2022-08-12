@@ -131,7 +131,7 @@ app.get("/urls/new", (req, res) => {
 app.get("/urls/:id", (req, res) => {
   const user = userDatabase[req.session.user_id];
   if (!user) {
-    return res.redirect("/login");
+    return res.render("not_logged_in");
   }
   if (!urlDatabase[req.params.id]) { // Doesn't exist
     return res.render('404_not_found');
