@@ -19,7 +19,7 @@
   <body>
     <%- include('partials/_header') %>
     <main style="margin: 1em;">
-      <h3>My URLs</h3>
+      <h3>My URL</h3>
       <table class="table">
         <thead>
           <tr>
@@ -36,7 +36,7 @@
             <tr>
               <td><a href="/urls/<%= id %>"><%= id %></a></td>
               <td><%= urls[id] %></td>
-              <td><%= urlData[id].visits %></td>
+              <td><%= urlData[id].totalVisits %></td>
               <td><%= urlData[id].uniqueVisitors %></td>
               <td><%= urlData[id].createdAt %></td>
               <td>

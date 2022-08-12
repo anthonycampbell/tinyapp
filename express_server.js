@@ -112,7 +112,7 @@ app.post("/urls", (req, res) => {
   const newURL = {
     longURL: req.body.longURL,
     userID: uid,
-    visits: 0,
+    totalVisits: 0,
     uniqueVisitors: 0,
     visitObjects: [],
     createdAt: new Date()
@@ -183,25 +183,21 @@ app.put("/urls/:id", (req, res) => {
 });
 
 app.get("/u/:id", (req, res) => {
-  let id = req.params.id;
+  const id = req.params.id;
   if (!urlDatabase[id]) {
     return res.render('404_not_found');
   }
-  let d = new Date();
-  let vid;
+  let visit = {
+    timestamp: new Date(),
+    visitorID: req.cookies['analytics']
+  };
   if (!hasVisited(urlDatabase, id, req.cookies['analytics'])) { // remember first visit
-    if (!req.cookies['analytics']) {
-      vid = generateRandomString();
-      res.cookie('analytics', vid);
-    }
+    visit.visitorID = generateRandomString();
+    res.cookie('analytics', visit.visitorID);
     urlDatabase[id].uniqueVisitors = urlDatabase[id].uniqueVisitors + 1;
   }
-  !vid ? vid = req.cookies['analytics'] : null; // subsequent visits
-  urlDatabase[id].visitObjects.push({
-    timestamp: d,
-    visitorID: vid
-  });
-  urlDatabase[id].visits = urlDatabase[id].visits + 1;
+  urlDatabase[id].visitObjects.push(visit);
+  urlDatabase[id].totalVisits = urlDatabase[id].totalVisits + 1;
   return res.redirect(urlDatabase[id].longURL);
 });
 
